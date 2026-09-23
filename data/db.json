@@ -2,7 +2,7 @@
   "meta": {
     "name": "运单计费与账单核对台",
     "currency": "CNY",
-    "updatedAt": "2026-09-22T12:48:30.802Z"
+    "updatedAt": "2026-09-23T13:07:14.858Z"
   },
   "settings": {
     "volumetricDivisor": 6000,
@@ -566,17 +566,21 @@
           "waybillId": "wb-0013",
           "code": "YD20260804013",
           "toCity": "江城",
+          "resolvedCity": "江城",
+          "zoneId": "zone-0001",
           "zoneName": "同城",
           "billableKg": 5,
-          "amountYuan": 15.37,
+          "amountYuan": 17.76,
           "fromCache": false
         },
         {
           "waybillId": "wb-0014",
           "code": "YD20260809014",
           "toCity": "云岭",
-          "zoneName": "同城",
-          "billableKg": 4,
+          "resolvedCity": "云岭",
+          "zoneId": "zone-0002",
+          "zoneName": "省内",
+          "billableKg": 6.5,
           "amountYuan": 21.56,
           "fromCache": true
         },
@@ -584,31 +588,37 @@
           "waybillId": "wb-0015",
           "code": "YD20260815015",
           "toCity": "沙洲",
-          "zoneName": "同城",
+          "resolvedCity": "沙洲",
+          "zoneId": "zone-0003",
+          "zoneName": "跨省",
           "billableKg": 10,
-          "amountYuan": 30.74,
+          "amountYuan": 66.64,
           "fromCache": false
         },
         {
           "waybillId": "wb-0016",
           "code": "YD20260822016",
           "toCity": "海陵",
+          "resolvedCity": "海陵",
+          "zoneId": "zone-0001",
           "zoneName": "同城",
           "billableKg": 3,
-          "amountYuan": 9.22,
+          "amountYuan": 10.66,
           "fromCache": false
         },
         {
           "waybillId": "wb-0017",
           "code": "YD20260826017",
           "toCity": "白鹿",
-          "zoneName": "同城",
+          "resolvedCity": "白鹿",
+          "zoneId": "zone-0002",
+          "zoneName": "省内",
           "billableKg": 14.5,
-          "amountYuan": 44.58,
+          "amountYuan": 60.9,
           "fromCache": false
         }
       ],
-      "amountYuan": 112.21,
+      "amountYuan": 183.26,
       "discountPermille": 980
     },
     {
@@ -630,17 +640,21 @@
           "waybillId": "wb-0013",
           "code": "YD20260804013",
           "toCity": "江城",
+          "resolvedCity": "江城",
+          "zoneId": "zone-0001",
           "zoneName": "同城",
           "billableKg": 5,
-          "amountYuan": 15.37,
+          "amountYuan": 17.76,
           "fromCache": false
         },
         {
           "waybillId": "wb-0014",
           "code": "YD20260809014",
           "toCity": "云岭",
-          "zoneName": "同城",
-          "billableKg": 4,
+          "resolvedCity": "云岭",
+          "zoneId": "zone-0002",
+          "zoneName": "省内",
+          "billableKg": 6.5,
           "amountYuan": 21.56,
           "fromCache": true
         },
@@ -648,31 +662,37 @@
           "waybillId": "wb-0015",
           "code": "YD20260815015",
           "toCity": "沙洲",
-          "zoneName": "同城",
+          "resolvedCity": "沙洲",
+          "zoneId": "zone-0003",
+          "zoneName": "跨省",
           "billableKg": 10,
-          "amountYuan": 30.74,
+          "amountYuan": 66.64,
           "fromCache": false
         },
         {
           "waybillId": "wb-0016",
           "code": "YD20260822016",
           "toCity": "海陵",
+          "resolvedCity": "海陵",
+          "zoneId": "zone-0001",
           "zoneName": "同城",
           "billableKg": 3,
-          "amountYuan": 9.22,
+          "amountYuan": 10.66,
           "fromCache": false
         },
         {
           "waybillId": "wb-0017",
           "code": "YD20260826017",
           "toCity": "白鹿",
-          "zoneName": "同城",
+          "resolvedCity": "白鹿",
+          "zoneId": "zone-0002",
+          "zoneName": "省内",
           "billableKg": 14.5,
-          "amountYuan": 44.58,
+          "amountYuan": 60.9,
           "fromCache": false
         }
       ],
-      "amountYuan": 112.21,
+      "amountYuan": 183.26,
       "discountPermille": 980
     },
     {
@@ -697,76 +717,92 @@
           "waybillId": "wb-0001",
           "code": "YD20260803001",
           "toCity": "海陵",
+          "resolvedCity": "海陵",
+          "zoneId": "zone-0001",
           "zoneName": "同城",
           "billableKg": 3.5,
-          "amountYuan": 10.25,
+          "amountYuan": 10.49,
           "fromCache": false
         },
         {
           "waybillId": "wb-0002",
           "code": "YD20260805002",
           "toCity": "云岭高新区",
-          "zoneName": "同城",
+          "resolvedCity": "云岭",
+          "zoneId": "zone-0002",
+          "zoneName": "省内",
           "billableKg": 2.5,
-          "amountYuan": 7.32,
+          "amountYuan": 15.2,
           "fromCache": false
         },
         {
           "waybillId": "wb-0003",
           "code": "YD20260807003",
           "toCity": "江城",
+          "resolvedCity": "江城",
+          "zoneId": "zone-0001",
           "zoneName": "同城",
-          "billableKg": 13,
-          "amountYuan": 38.05,
+          "billableKg": 18.5,
+          "amountYuan": 55.47,
           "fromCache": false
         },
         {
           "waybillId": "wb-0004",
           "code": "YD20260811004",
           "toCity": "海陵",
+          "resolvedCity": "海陵",
+          "zoneId": "zone-0001",
           "zoneName": "同城",
           "billableKg": 1.5,
-          "amountYuan": 27.85,
+          "amountYuan": 27.95,
           "fromCache": false
         },
         {
           "waybillId": "wb-0005",
           "code": "YD20260812005",
           "toCity": "海陵",
+          "resolvedCity": "海陵",
+          "zoneId": "zone-0001",
           "zoneName": "同城",
           "billableKg": 1.5,
-          "amountYuan": 27.85,
+          "amountYuan": 27.95,
           "fromCache": false
         },
         {
           "waybillId": "wb-0006",
           "code": "YD20260813006",
           "toCity": "海陵",
+          "resolvedCity": "海陵",
+          "zoneId": "zone-0001",
           "zoneName": "同城",
           "billableKg": 1.5,
-          "amountYuan": 27.85,
+          "amountYuan": 27.95,
           "fromCache": false
         },
         {
           "waybillId": "wb-0007",
           "code": "YD20260820007",
           "toCity": "平原",
-          "zoneName": "同城",
+          "resolvedCity": "平原",
+          "zoneId": "zone-0003",
+          "zoneName": "跨省",
           "billableKg": 32.5,
-          "amountYuan": 114.14,
+          "amountYuan": 211.85,
           "fromCache": false
         },
         {
           "waybillId": "wb-0008",
           "code": "YD20260901008",
           "toCity": "海陵",
+          "resolvedCity": "海陵",
+          "zoneId": "zone-0001",
           "zoneName": "同城",
           "billableKg": 5.5,
-          "amountYuan": 16.1,
+          "amountYuan": 16.49,
           "fromCache": false
         }
       ],
-      "amountYuan": 269.3915,
+      "amountYuan": 393.3665,
       "discountPermille": 950
     }
   ]

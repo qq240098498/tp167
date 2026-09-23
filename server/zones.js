@@ -31,24 +31,26 @@ function findZone(data, id) {
   return data.zones.find((zone) => zone.id === id) || null;
 }
 
-// 城市归属：先看各分区登记的别名，再看直接登记的城市
-function zoneOfCity(data, city) {
-  const target = cleanCity(city);
-  if (!target) return null;
+// 城市解析的统一口径：别名先归到正式城市，再按正式城市定分区。
+// 所有要用分区的地方（运单页、单条计费、出账、删分区检查）都走这一个函数。
+// 认不出来的城市 zone 为 null，按「未归属」处理，绝不回退到任何一个分区充数。
+function resolveCity(data, rawCity) {
+  const input = cleanCity(rawCity);
+  if (!input) return { input: '', city: '', zone: null };
+  let city = input;
   for (const zone of data.zones) {
     const aliases = zone.aliases || {};
-    if (Object.prototype.hasOwnProperty.call(aliases, target)) return zone;
+    if (Object.prototype.hasOwnProperty.call(aliases, input)) {
+      city = cleanCity(aliases[input]) || input;
+      break;
+    }
   }
-  return data.zones.find((zone) => zone.cities.map(cleanCity).includes(target)) || null;
+  const zone = data.zones.find((item) => (item.cities || []).map(cleanCity).includes(city)) || null;
+  return { input, city, zone };
 }
 
-function cityIndex(data) {
-  const index = new Map();
-  data.zones.forEach((zone) => {
-    (zone.cities || []).forEach((city) => index.set(cleanCity(city), zone));
-    Object.keys(zone.aliases || {}).forEach((alias) => index.set(cleanCity(alias), zone));
-  });
-  return index;
+function zoneOfCity(data, city) {
+  return resolveCity(data, city).zone;
 }
 
 function validateZonePayload(payload, current) {
@@ -112,10 +114,9 @@ function removeZone(id) {
   const data = load();
   const current = findZone(data, id);
   if (!current) throw notFound('ZONE_NOT_FOUND', '分区不存在');
-  const index = cityIndex(data);
   const used = data.waybills.filter((waybill) => {
-    const zone = index.get(cleanCity(waybill.toCity));
-    return zone && zone.id === id;
+    const resolved = resolveCity(data, waybill.toCity);
+    return resolved.zone && resolved.zone.id === id;
   });
   if (used.length > 0) {
     throw badRequest('ZONE_IN_USE', '这个分区下的城市还有 ' + used.length + ' 条运单在用，先处理完再删', { count: used.length });
@@ -125,4 +126,4 @@ function removeZone(id) {
   return { removed: id };
 }
 
-module.exports = { listZones, findZone, zoneOfCity, cityIndex, createZone, updateZone, removeZone, cleanCity };
+module.exports = { listZones, findZone, resolveCity, zoneOfCity, createZone, updateZone, removeZone, cleanCity };

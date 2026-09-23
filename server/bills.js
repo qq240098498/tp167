@@ -1,18 +1,8 @@
 const { badRequest, notFound } = require('./errors');
 const { load, save, nextId } = require('./store');
 const pricing = require('./pricing');
+const zones = require('./zones');
 const { findCustomer } = require('./customers');
-
-function cleanCity(value) {
-  return String(value == null ? '' : value).trim();
-}
-
-// 账单里的分区判断：拿收件城市跟各分区登记的城市直接比
-function zoneOf(data, city) {
-  const target = cleanCity(city);
-  const matched = data.zones.find((zone) => (zone.cities || []).some((item) => cleanCity(item) === target));
-  return matched || data.zones[0] || null;
-}
 
 // 账期：按运单创建时刻的年月
 function periodOf(waybill) {
@@ -25,32 +15,57 @@ function candidateWaybills(data, period, customerId) {
   return data.waybills.filter((waybill) => waybill.customerId === customerId && periodOf(waybill) === period);
 }
 
-// 出账计费：同一账期同一客户的运单合起来算一次首重续重，再按各自的计费重量分摊
+// 出账计费：城市解析与运单页、单条计费走同一套口径（zones.resolveCity，别名先归到正式城市再定分区）。
+// 同一账期同一客户的运单按分区分组，每组内合起来算一次首重续重，再按各自的计费重量分摊。
+// 只要有运单的收件城市未归属分区，整张账单不出，把这几条运单明确列出来。
 function priceBill(data, customer, waybills) {
   const settings = pricing.settingsOf(data);
   const permille = pricing.discountPermilleOf(customer);
   if (waybills.length === 0) return { lines: [], amountYuan: 0, permille };
-  const zone = zoneOf(data, waybills[0].toCity);
-  const weights = waybills.map((waybill) => pricing.billableWeightKg(waybill, settings));
-  const totalWeight = weights.reduce((sum, value) => sum + value, 0);
-  const freightAll = pricing.freightYuan(zone, totalWeight, settings);
-  const surchargeAll = waybills.reduce((sum, waybill, index) => (
-    sum + pricing.surchargeYuan(zone, waybill, weights[index], settings)
-  ), 0);
+  const resolvedList = waybills.map((waybill) => ({ waybill, resolved: zones.resolveCity(data, waybill.toCity) }));
+  const unzoned = resolvedList.filter((item) => !item.resolved.zone);
+  if (unzoned.length > 0) {
+    throw badRequest(
+      'BILL_ZONE_UNKNOWN',
+      '有 ' + unzoned.length + ' 条运单的收件城市未归属分区，不能出账：' +
+        unzoned.map((item) => item.waybill.code + '（' + item.waybill.toCity + '）').join('、') +
+        '。请先在分区里登记这些城市或别名。',
+      { waybills: unzoned.map((item) => ({ id: item.waybill.id, code: item.waybill.code, toCity: item.waybill.toCity })) }
+    );
+  }
+  const weights = resolvedList.map((item) => pricing.billableWeightKg(item.waybill, settings));
+  const groups = new Map();
+  resolvedList.forEach((item, index) => {
+    const zoneId = item.resolved.zone.id;
+    if (!groups.has(zoneId)) groups.set(zoneId, { zone: item.resolved.zone, entries: [] });
+    groups.get(zoneId).entries.push({ index, weight: weights[index] });
+  });
+  const freightOf = new Array(waybills.length).fill(0);
+  let freightAll = 0;
+  groups.forEach((group) => {
+    const totalWeight = group.entries.reduce((sum, entry) => sum + entry.weight, 0);
+    const groupFreight = pricing.freightYuan(group.zone, totalWeight, settings);
+    freightAll += groupFreight;
+    group.entries.forEach((entry) => {
+      freightOf[entry.index] = totalWeight > 0 ? (groupFreight * entry.weight) / totalWeight : 0;
+    });
+  });
+  const surchargeOf = resolvedList.map((item, index) => pricing.surchargeYuan(item.resolved.zone, item.waybill, weights[index], settings));
+  const surchargeAll = surchargeOf.reduce((sum, value) => sum + value, 0);
   const grossAll = freightAll + surchargeAll;
-  const amountYuan = grossAll * permille / 1000;
-  const lines = waybills.map((waybill, index) => {
-    const weight = weights[index];
-    const share = totalWeight > 0 ? weight / totalWeight : 0;
-    const raw = (freightAll * share + pricing.surchargeYuan(zone, waybill, weight, settings)) * permille / 1000;
-    const cached = Number(waybill.quoteCacheYuan);
+  const amountYuan = (grossAll * permille) / 1000;
+  const lines = resolvedList.map((item, index) => {
+    const raw = ((freightOf[index] + surchargeOf[index]) * permille) / 1000;
+    const cached = Number(item.waybill.quoteCacheYuan);
     const amount = cached > 0 ? cached : pricing.roundFen(raw);
     return {
-      waybillId: waybill.id,
-      code: waybill.code,
-      toCity: waybill.toCity,
-      zoneName: zone ? zone.name : '',
-      billableKg: weight,
+      waybillId: item.waybill.id,
+      code: item.waybill.code,
+      toCity: item.waybill.toCity,
+      resolvedCity: item.resolved.city,
+      zoneId: item.resolved.zone.id,
+      zoneName: item.resolved.zone.name,
+      billableKg: weights[index],
       amountYuan: amount,
       fromCache: cached > 0,
     };
@@ -167,4 +182,4 @@ function listPeriods() {
   return { periods: Array.from(periods).sort() };
 }
 
-module.exports = { listBills, getBill, generateBill, voidBill, listPeriods, periodOf, zoneOf };
+module.exports = { listBills, getBill, generateBill, voidBill, listPeriods, periodOf, priceBill };
