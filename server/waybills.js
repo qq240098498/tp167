@@ -9,8 +9,7 @@ const SERVICES = ['保价', '签收', '上门'];
 function decorate(waybill, data) {
   const customer = findCustomer(data, waybill.customerId);
   const zone = zones.zoneOfCity(data, waybill.toCity);
-  const index = zones.cityIndex(data);
-  const known = index.has(zones.cleanCity(waybill.toCity));
+  const resolvedCity = zones.resolveCity(data, waybill.toCity);
   const bill = data.bills.find((item) => item.id === waybill.billId) || null;
   return Object.assign({}, waybill, {
     customerName: customer ? customer.name : '（客户已删）',
@@ -18,7 +17,9 @@ function decorate(waybill, data) {
     settle: customer ? customer.settle : '',
     zoneId: zone ? zone.id : '',
     zoneName: zone ? zone.name : '未归属',
-    zoneKnown: known,
+    zoneKnown: Boolean(zone),
+    resolvedCity: resolvedCity || '',
+    cityAliased: Boolean(zone && resolvedCity && resolvedCity !== zones.cleanCity(waybill.toCity)),
     billCode: bill ? bill.code : '',
     billStatus: bill ? bill.status : '',
     locked: Boolean(waybill.billId),

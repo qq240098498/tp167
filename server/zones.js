@@ -31,24 +31,33 @@ function findZone(data, id) {
   return data.zones.find((zone) => zone.id === id) || null;
 }
 
-// 城市归属：先看各分区登记的别名，再看直接登记的城市
-function zoneOfCity(data, city) {
+// 城市归一：别名先归到正式城市。所有要定分区的地方都先过这一步，保证口径一致。
+// 输入不是别名时原样返回；认不出的城市也原样返回，由 zoneOfCity 判「未归属」。
+function resolveCity(data, city) {
   const target = cleanCity(city);
   if (!target) return null;
-  for (const zone of data.zones) {
-    const aliases = zone.aliases || {};
-    if (Object.prototype.hasOwnProperty.call(aliases, target)) return zone;
+  const aliases = new Map();
+  (data.zones || []).forEach((zone) => {
+    Object.keys(zone.aliases || {}).forEach((alias) => {
+      const key = cleanCity(alias);
+      if (key && !aliases.has(key)) aliases.set(key, cleanCity(zone.aliases[alias]));
+    });
+  });
+  const seen = new Set();
+  let current = target;
+  while (current && aliases.has(current) && !seen.has(current)) {
+    seen.add(current);
+    current = aliases.get(current);
   }
-  return data.zones.find((zone) => zone.cities.map(cleanCity).includes(target)) || null;
+  return current || null;
 }
 
-function cityIndex(data) {
-  const index = new Map();
-  data.zones.forEach((zone) => {
-    (zone.cities || []).forEach((city) => index.set(cleanCity(city), zone));
-    Object.keys(zone.aliases || {}).forEach((alias) => index.set(cleanCity(alias), zone));
-  });
-  return index;
+// 城市归属：先归一到正式城市，再按各分区登记的正式城市定分区。
+// 认不出来的城市返回 null（未归属），不允许拿清单里的第一个分区充数。
+function zoneOfCity(data, city) {
+  const canonical = resolveCity(data, city);
+  if (!canonical) return null;
+  return (data.zones || []).find((zone) => (zone.cities || []).map(cleanCity).includes(canonical)) || null;
 }
 
 function validateZonePayload(payload, current) {
@@ -80,7 +89,35 @@ function validateZonePayload(payload, current) {
     if (!target) throw badRequest('ZONE_ALIAS_TARGET_REQUIRED', '别名要写明对应哪个城市：' + alias, { field: 'aliases' });
     aliases[alias] = target;
   });
+  // 别名必须先归到正式城市再定分区，所以别名指向的城市要登记在本分区的覆盖城市里
+  Object.keys(aliases).forEach((alias) => {
+    if (!cities.includes(aliases[alias])) {
+      throw badRequest('ZONE_ALIAS_TARGET_UNKNOWN', '别名 ' + alias + ' 指向的城市「' + aliases[alias] + '」不在本分区的覆盖城市里', { field: 'aliases' });
+    }
+  });
   return { code, name, status, firstWeightKg, firstPriceYuan, addUnitKg, addPriceYuan, remoteFeeYuan, cities, aliases };
+}
+
+// 别名不能和别的分区的别名重复，也不能和任何正式城市同名，否则同一个名字会归到两个地方
+function assertAliasesUsable(data, zoneId, aliases, ownCities) {
+  const keys = Object.keys(aliases);
+  if (keys.length === 0) return;
+  const takenCities = new Set(ownCities);
+  data.zones.forEach((zone) => {
+    if (zone.id === zoneId) return;
+    (zone.cities || []).forEach((city) => takenCities.add(cleanCity(city)));
+    const otherAliases = Object.keys(zone.aliases || {}).map(cleanCity);
+    keys.forEach((alias) => {
+      if (otherAliases.includes(alias)) {
+        throw badRequest('ZONE_ALIAS_DUPLICATE', '别名 ' + alias + ' 已经在分区 ' + zone.code + '（' + zone.name + '）登记了', { field: 'aliases' });
+      }
+    });
+  });
+  keys.forEach((alias) => {
+    if (takenCities.has(alias)) {
+      throw badRequest('ZONE_ALIAS_CONFLICT', '别名 ' + alias + ' 和已登记的正式城市同名，归属会有歧义', { field: 'aliases' });
+    }
+  });
 }
 
 function createZone(payload) {
@@ -89,6 +126,7 @@ function createZone(payload) {
   if (data.zones.some((zone) => zone.code === clean.code)) {
     throw badRequest('ZONE_CODE_DUPLICATE', '分区编码 ' + clean.code + ' 已经存在', { field: 'code' });
   }
+  assertAliasesUsable(data, null, clean.aliases, clean.cities);
   const zone = Object.assign({ id: nextId('zone', data.zones) }, clean);
   data.zones.push(zone);
   save(data);
@@ -103,6 +141,7 @@ function updateZone(id, payload) {
   if (data.zones.some((zone) => zone.id !== id && zone.code === clean.code)) {
     throw badRequest('ZONE_CODE_DUPLICATE', '分区编码 ' + clean.code + ' 已经存在', { field: 'code' });
   }
+  assertAliasesUsable(data, id, clean.aliases, clean.cities);
   Object.assign(current, clean);
   save(data);
   return current;
@@ -112,9 +151,8 @@ function removeZone(id) {
   const data = load();
   const current = findZone(data, id);
   if (!current) throw notFound('ZONE_NOT_FOUND', '分区不存在');
-  const index = cityIndex(data);
   const used = data.waybills.filter((waybill) => {
-    const zone = index.get(cleanCity(waybill.toCity));
+    const zone = zoneOfCity(data, waybill.toCity);
     return zone && zone.id === id;
   });
   if (used.length > 0) {
@@ -125,4 +163,4 @@ function removeZone(id) {
   return { removed: id };
 }
 
-module.exports = { listZones, findZone, zoneOfCity, cityIndex, createZone, updateZone, removeZone, cleanCity };
+module.exports = { listZones, findZone, resolveCity, zoneOfCity, createZone, updateZone, removeZone, cleanCity };

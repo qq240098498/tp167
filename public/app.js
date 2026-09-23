@@ -523,7 +523,7 @@
       '<dt>客户</dt><dd>' + esc(item.customerName) + '（' + esc(item.customerCode || '-') + '）</dd>' +
       '<dt>结算方式</dt><dd>' + esc(item.settle || '-') + '</dd>' +
       '<dt>寄件城市</dt><dd>' + esc(item.fromCity) + '</dd>' +
-      '<dt>收件城市</dt><dd>' + esc(item.toCity) + '</dd>' +
+      '<dt>收件城市</dt><dd>' + esc(item.toCity) + (item.cityAliased ? '（别名，归到 ' + esc(item.resolvedCity) + '）' : '') + '</dd>' +
       '<dt>实际重量</dt><dd>' + esc(item.weightText || kg(item.weightKg)) + '</dd>' +
       '<dt>体积</dt><dd>' + esc(item.volumeText || m3(item.volumeM3)) + '</dd>' +
       '<dt>件数</dt><dd>' + esc(num(item.pieces)) + ' 件</dd>' +
@@ -1123,7 +1123,7 @@
     var rows = lines.map(function (line) {
       return '<tr>' +
         '<td>' + esc(line.code) + '</td>' +
-        '<td>' + esc(line.toCity) + '</td>' +
+        '<td>' + esc(line.toCity) + (line.resolvedCity && line.resolvedCity !== line.toCity ? '（→ ' + esc(line.resolvedCity) + '）' : '') + '</td>' +
         '<td>' + esc(line.zoneName || '-') + '</td>' +
         '<td class="num">' + esc(line.billableText || kg(line.billableKg)) + '</td>' +
         '<td class="num">' + esc(line.amountText || money(line.amountYuan)) + '</td>' +
